@@ -72,7 +72,8 @@ export default class Game extends Phaser.Scene {
     });
 
     this.stars.children.iterate(function (child) {
-      child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+      child.setBounceY(Phaser.Math.FloatBetween(1, 1));
+      
     });
 
     this.bombs = this.physics.add.group();
@@ -88,6 +89,7 @@ export default class Game extends Phaser.Scene {
     this.physics.add.collider(this.player, this.platforms);
 
     this.physics.add.collider(this.stars, this.platforms);
+    this.physics.add.collider(this.bombs, this.platforms);
 
     this.physics.add.overlap(
       this.player,
@@ -104,6 +106,34 @@ export default class Game extends Phaser.Scene {
       null,
       this
     );
+
+    this.input.keyboard.on('keydown-R', () => { // al preisionar la tecla R la ecena se reinicia 
+      this.scene.restart();
+  });
+
+    this.gameOverText = this.add.text(        // este codigo creo el texto pero no aun no lo muestra
+    
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      'GAME OVER',
+      { fontSize: '64px', fill: '#ff0000' }
+    ).setOrigin(0.5).setVisible(false);
+     
+    // Crea una variable para guardar el tiempo que queda. Comienza en 30 segundos
+    this.timeLeft = 30; 
+    //Muestra el tiempo en la esquina superior derecha.
+this.timerText = this.add.text(780, 16, `Time: ${this.timeLeft}`, {
+  fontSize: '32px',
+  fill: '#000'
+}).setOrigin(1, 0); //hace que el texto se alinee a la derecha.
+
+//Este evento ejecuta la función onSecond() cada segundo.
+this.timerEvent = this.time.addEvent({
+  delay: 1000, // cada 1000 ms = 1 segundo
+  callback: this.onSecond,
+  callbackScope: this,
+  loop: true
+});
   }
 
   update() {
@@ -135,8 +165,13 @@ export default class Game extends Phaser.Scene {
 
     if (this.stars.countActive(true) === 0) {
       //  A new batch of stars to collect
+
+      this.timeLeft = 30; // reiniciar el temporizador si recolectaste todas las estrellas
+      this.timerText.setText(`Time: ${this.timeLeft}`);
+
       this.stars.children.iterate(function (child) {
         child.enableBody(true, child.x, 0, true, true);
+      
       });
 
       var x =
@@ -160,5 +195,22 @@ export default class Game extends Phaser.Scene {
     this.player.anims.play("turn");
 
     this.gameOver = true;
+
+    this.gameOverText.setVisible(true);  // esta linea hace visble el texto cuando el player toca la bomba 
+  } 
+  // esta funcion se llama cada segundo. Resta tiempo, actualiza el texto, y verifica si llega a cero.
+  onSecond() {
+    if (!this.gameOver) {
+      this.timeLeft--;
+      this.timerText.setText(`Time: ${this.timeLeft}`);
+  
+      if (this.timeLeft <= 0) {
+        this.physics.pause();
+        this.player.setTint(0xff0000);
+        this.player.anims.play('turn');
+        this.gameOver = true;
+        this.gameOverText.setVisible(true);
+      }
+    }
   }
 }
